@@ -1,0 +1,455 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Auth ────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String?
+  name          String?
+  isSystemAdmin Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  memberships WorkspaceMember[]
+  accounts    Account[]
+  sessions    Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Workspace ───────────────────────────────────────────────────────────────
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  plan      String   @default("FREE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  fromName  String?
+  fromEmail String?
+
+  emailProvider String?
+  smtpHost      String?
+  smtpPort      Int?
+  smtpUser      String?
+  smtpPassword  String?
+
+  outreachRunnerEnabled Boolean   @default(false)
+  outreachRunnerTime    String?
+  lastOutreachRunAt     DateTime?
+
+  journeyRunnerEnabled Boolean   @default(false)
+  journeyRunnerTime    String?
+  lastJourneyRunAt     DateTime?
+
+  maxEmailsPerDay    Int?
+  maxEmailsPerRun    Int?
+  randomDelayEnabled Boolean @default(false)
+
+  stripeCustomerId String?
+  onboardingDone   Boolean @default(false)
+
+  members        WorkspaceMember[]
+  leads          Lead[]
+  sequences      EmailSequence[]
+  deals          Deal[]
+  quotes         Quote[]
+  invoices       Invoice[]
+  clients        Client[]
+  journeys       CustomerJourney[]
+  activityLogs   ActivityLog[]
+  systemLogs     SystemLog[]
+  runnerLogs     RunnerLog[]
+  subscription   WorkspaceSubscription?
+  invoiceCounter InvoiceCounter?
+  quoteCounter   QuoteCounter?
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        String   @default("MEMBER")
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+}
+
+// ─── Leads ───────────────────────────────────────────────────────────────────
+
+model Lead {
+  id          String   @id @default(cuid())
+  workspaceId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  firma        String
+  email        String?
+  telefon      String?
+  website      String?
+  quelle       String?
+  anrede       String?
+  nachname     String?
+
+  status       String   @default("NEW")
+  outStatus    String   @default("NEW")
+  nextSendAt   DateTime?
+  lastSentAt   DateTime?
+  replied      Boolean  @default(false)
+  optout       Boolean  @default(false)
+  archivStatus String?
+
+  kommentar    String?
+  nextAction   String?
+  nextDate     DateTime?
+  foundEmails  String?
+
+  workspace   Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  enrollments OutreachEnrollment[]
+  deals       Deal[]
+  inboundEmails InboundEmail[]
+}
+
+// ─── Outreach ────────────────────────────────────────────────────────────────
+
+model EmailSequence {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  workspace   Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  stages      EmailStage[]
+  enrollments OutreachEnrollment[]
+}
+
+model EmailStage {
+  id         String @id @default(cuid())
+  sequenceId String
+  stepNumber Int
+  delayDays  Int    @default(0)
+  subject    String
+  body       String @db.Text
+
+  sequence    EmailSequence        @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  enrollments OutreachEnrollment[]
+}
+
+model OutreachEnrollment {
+  id             String   @id @default(cuid())
+  leadId         String
+  sequenceId     String
+  currentStep    Int      @default(0)
+  status         String   @default("ACTIVE")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  nextSendAt     DateTime?
+  lastSentAt     DateTime?
+  currentStageId String?
+
+  lead         Lead          @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  sequence     EmailSequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+  currentStage EmailStage?   @relation(fields: [currentStageId], references: [id])
+}
+
+model OutreachLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  leadId      String?
+  email       String
+  subject     String
+  stage       String
+  sentAt      DateTime @default(now())
+}
+
+model InboundEmail {
+  id          String   @id @default(cuid())
+  workspaceId String
+  leadId      String?
+  fromEmail   String
+  subject     String?
+  body        String?  @db.Text
+  receivedAt  DateTime @default(now())
+
+  lead Lead? @relation(fields: [leadId], references: [id])
+}
+
+// ─── Pipeline / Deals ────────────────────────────────────────────────────────
+
+model Deal {
+  id          String   @id @default(cuid())
+  workspaceId String
+  leadId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  firma    String
+  email    String?
+  anrede   String?
+  nachname String?
+  telefon  String?
+  website  String?
+
+  status   String  @default("ACTIVE")
+  notes    String?
+  value    Float?
+
+  offerSentAt DateTime?
+  closedAt    DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  lead      Lead?     @relation(fields: [leadId], references: [id])
+  quotes    Quote[]
+  invoices  Invoice[]
+}
+
+// ─── Quotes ──────────────────────────────────────────────────────────────────
+
+model Quote {
+  id          String   @id @default(cuid())
+  workspaceId String
+  dealId      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quoteNumber   String
+  customerName  String?
+  customerEmail String?
+  contactLine   String?
+  validUntil    DateTime?
+  status        String   @default("DRAFT")
+
+  items       Json
+  totalAmount Float    @default(0)
+
+  sentAt DateTime?
+  notes  String?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  deal      Deal?     @relation(fields: [dealId], references: [id])
+}
+
+model QuoteCounter {
+  id          String @id @default(cuid())
+  workspaceId String @unique
+  year        Int
+  counter     Int    @default(0)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+// ─── Invoices ────────────────────────────────────────────────────────────────
+
+model Invoice {
+  id          String   @id @default(cuid())
+  workspaceId String
+  dealId      String?
+  clientId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  invoiceNumber String
+  customerName  String?
+  customerEmail String?
+  contactLine   String?
+  dueDate       DateTime?
+  status        String   @default("DRAFT")
+
+  items       Json
+  totalAmount Float   @default(0)
+  taxMode     String  @default("NONE")
+  vatRate     Float   @default(0.19)
+
+  sentAt   DateTime?
+  paidAt   DateTime?
+  notes    String?
+  driveUrl String?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  deal      Deal?     @relation(fields: [dealId], references: [id])
+  client    Client?   @relation(fields: [clientId], references: [id])
+}
+
+model InvoiceCounter {
+  id          String @id @default(cuid())
+  workspaceId String @unique
+  year        Int
+  counter     Int    @default(0)
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+// ─── Clients ─────────────────────────────────────────────────────────────────
+
+model Client {
+  id          String   @id @default(cuid())
+  workspaceId String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  firmenname      String
+  ansprechpartner String?
+  email           String?
+  telefon         String?
+  website         String?
+  startdatum      DateTime?
+  status          String   @default("Aktiv")
+  notes           String?
+
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  journeyEnrollments JourneyEnrollment[]
+  invoices           Invoice[]
+}
+
+// ─── Customer Journeys ───────────────────────────────────────────────────────
+
+model CustomerJourney {
+  id          String   @id @default(cuid())
+  workspaceId String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  steps       JourneyStep[]
+  enrollments JourneyEnrollment[]
+}
+
+model JourneyStep {
+  id         String @id @default(cuid())
+  journeyId  String
+  stepNumber Int
+  delayDays  Int    @default(0)
+  subject    String
+  body       String @db.Text
+  type       String @default("EMAIL")
+
+  journey CustomerJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  logs    JourneyLog[]
+}
+
+model JourneyEnrollment {
+  id          String   @id @default(cuid())
+  clientId    String
+  journeyId   String
+  currentStep Int      @default(0)
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  nextSendAt  DateTime?
+  lastSentAt  DateTime?
+
+  client  Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  journey CustomerJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+}
+
+model JourneyLog {
+  id       String   @id @default(cuid())
+  stepId   String
+  clientId String
+  sentAt   DateTime @default(now())
+  toEmail  String?
+
+  step JourneyStep @relation(fields: [stepId], references: [id])
+}
+
+// ─── Logging ─────────────────────────────────────────────────────────────────
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  type        String
+  message     String
+  entityId    String?
+  entityType  String?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+model SystemLog {
+  id          String   @id @default(cuid())
+  workspaceId String?
+  level       String   @default("INFO")
+  message     String
+  details     String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+}
+
+model RunnerLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  type        String
+  emailsSent  Int      @default(0)
+  errors      Int      @default(0)
+  duration    Int?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
+
+// ─── Billing ─────────────────────────────────────────────────────────────────
+
+model WorkspaceSubscription {
+  id                   String    @id @default(cuid())
+  workspaceId          String    @unique
+  stripeSubscriptionId String?
+  stripePriceId        String?
+  status               String    @default("trial")
+  planId               String    @default("FREE")
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+}
