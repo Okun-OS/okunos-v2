@@ -14,6 +14,7 @@ const nav = [
   { href: "/clients", label: "Kunden", icon: "🏢" },
   { href: "/journeys", label: "Journeys", icon: "🗺️" },
   { href: "/analytics", label: "Analytics", icon: "📈" },
+  { href: "/maps", label: "Maps Import", icon: "📍" },
 ];
 
 export function Sidebar() {

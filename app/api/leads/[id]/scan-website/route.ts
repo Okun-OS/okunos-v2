@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { scrapeWebsite } from "@/lib/scraper";
+import { scrapeWebsite, normalizeUrl } from "@/lib/website-scraper-enhanced";
 import { logActivity } from "@/lib/activity";
 
 interface RouteParams {
@@ -34,7 +34,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     );
   }
 
-  const { emails, error } = await scrapeWebsite(lead.website);
+  const normalizedWebsite = normalizeUrl(lead.website);
+  const { emails, error } = await scrapeWebsite(normalizedWebsite);
 
   if (error && emails.length === 0) {
     return NextResponse.json({ error }, { status: 422 });
