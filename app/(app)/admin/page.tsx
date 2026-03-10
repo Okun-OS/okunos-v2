@@ -199,7 +199,7 @@ export default async function AdminPage() {
       )}
 
       {/* Runner Logs */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden mb-8">
         <div className="px-6 py-4 border-b border-gray-800">
           <h2 className="text-white font-medium">Runner Logs</h2>
         </div>
@@ -228,6 +228,57 @@ export default async function AdminPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Billing / Subscriptions */}
+      <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-800">
+          <h2 className="text-white font-medium">Abonnements</h2>
+        </div>
+        {subscriptions.length === 0 ? (
+          <p className="px-6 py-6 text-gray-500 text-sm">Keine Abonnements vorhanden.</p>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-800">
+                <th className="text-left px-6 py-3 text-gray-400 text-xs uppercase">Workspace</th>
+                <th className="text-left px-6 py-3 text-gray-400 text-xs uppercase">Plan</th>
+                <th className="text-left px-6 py-3 text-gray-400 text-xs uppercase">Status</th>
+                <th className="text-left px-6 py-3 text-gray-400 text-xs uppercase">Läuft bis</th>
+              </tr>
+            </thead>
+            <tbody>
+              {subscriptions.map((s) => (
+                <tr key={s.id} className="border-b border-gray-800">
+                  <td className="px-6 py-3 text-white text-sm">{s.workspace.name}</td>
+                  <td className="px-6 py-3">
+                    <span className="text-xs bg-blue-900 text-blue-300 px-2 py-0.5 rounded">
+                      {s.workspace.plan}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3">
+                    <span className={`text-xs px-2 py-0.5 rounded ${
+                      s.status === "active"
+                        ? "bg-green-900 text-green-300"
+                        : s.status === "past_due"
+                        ? "bg-red-900 text-red-300"
+                        : s.status === "canceled"
+                        ? "bg-gray-700 text-gray-400"
+                        : "bg-yellow-900 text-yellow-300"
+                    }`}>
+                      {s.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 text-gray-400 text-xs">
+                    {s.currentPeriodEnd
+                      ? new Date(s.currentPeriodEnd).toLocaleDateString("de-DE")
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

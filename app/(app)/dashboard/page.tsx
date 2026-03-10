@@ -38,6 +38,8 @@ export default async function DashboardPage() {
     wonDealsCount,
     clientsCount,
     mailsSentToday,
+    newLeadsToday,
+    totalReplies,
     recentActivity,
   ] = await Promise.all([
     prisma.workspace.findUnique({ where: { id: workspaceId } }),
@@ -53,6 +55,12 @@ export default async function DashboardPage() {
     prisma.client.count({ where: { workspaceId } }),
     prisma.outreachLog.count({
       where: { workspaceId, sentAt: { gte: startOfToday } },
+    }),
+    prisma.lead.count({
+      where: { workspaceId, status: "NEW", createdAt: { gte: startOfToday } },
+    }),
+    prisma.lead.count({
+      where: { workspaceId, replied: true },
     }),
     prisma.activityLog.findMany({
       where: { workspaceId },
