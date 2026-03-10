@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import WorkspaceToggle from "./WorkspaceToggle";
 
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
@@ -30,6 +31,7 @@ export default async function AdminPage() {
     users,
     sysLogs,
     runnerLogs,
+    subscriptions,
   ] = await Promise.all([
     prisma.workspace.count(),
     prisma.user.count(),
@@ -57,6 +59,10 @@ export default async function AdminPage() {
       orderBy: { createdAt: "desc" },
       take: 20,
       include: { workspace: { select: { name: true } } },
+    }),
+    prisma.workspaceSubscription.findMany({
+      include: { workspace: { select: { name: true, plan: true } } },
+      orderBy: { updatedAt: "desc" },
     }),
   ]);
 
@@ -113,9 +119,12 @@ export default async function AdminPage() {
                   <td className="px-6 py-3 text-gray-400 text-sm">{owner?.user?.email || "—"}</td>
                   <td className="px-6 py-3 text-gray-400 text-sm">{ws._count.leads}</td>
                   <td className="px-6 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded ${ws.isActive ? "bg-green-900 text-green-300" : "bg-red-900 text-red-300"}`}>
-                      {ws.isActive ? "Aktiv" : "Inaktiv"}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2 py-0.5 rounded ${ws.isActive ? "bg-green-900 text-green-300" : "bg-red-900 text-red-300"}`}>
+                        {ws.isActive ? "Aktiv" : "Inaktiv"}
+                      </span>
+                      <WorkspaceToggle workspaceId={ws.id} isActive={ws.isActive} />
+                    </div>
                   </td>
                   <td className="px-6 py-3 text-gray-400 text-xs">
                     {new Date(ws.createdAt).toLocaleDateString("de-DE")}
