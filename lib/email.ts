@@ -80,8 +80,15 @@ async function sendViaSMTP(
       text: opts.text,
     });
     return { ok: true };
-  } catch (e: any) {
-    return { ok: false, error: e.message };
+  } catch (smtpError: any) {
+    console.warn("[SMTP] Send failed, attempting Resend fallback:", smtpError.message);
+
+    // Fall back to Resend if API key is available
+    if (process.env.RESEND_API_KEY) {
+      return sendViaResend(opts, from);
+    }
+
+    return { ok: false, error: smtpError.message };
   }
 }
 

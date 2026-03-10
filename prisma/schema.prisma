@@ -106,6 +106,7 @@ model Workspace {
   subscription   WorkspaceSubscription?
   invoiceCounter InvoiceCounter?
   quoteCounter   QuoteCounter?
+  mapsScrapeJobs MapsScrapeJob[]
 }
 
 model WorkspaceMember {
@@ -136,6 +137,7 @@ model Lead {
   quelle       String?
   anrede       String?
   nachname     String?
+  contactName  String?
 
   status       String   @default("NEW")
   outStatus    String   @default("NEW")
@@ -154,6 +156,20 @@ model Lead {
   enrollments OutreachEnrollment[]
   deals       Deal[]
   inboundEmails InboundEmail[]
+}
+
+model MapsScrapeJob {
+  id          String   @id @default(cuid())
+  workspaceId String
+  keyword     String
+  location    String
+  maxResults  Int      @default(20)
+  status      String   @default("PENDING")
+  results     Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 }
 
 // ─── Outreach ────────────────────────────────────────────────────────────────
@@ -177,6 +193,7 @@ model EmailStage {
   delayDays  Int    @default(0)
   subject    String
   body       String @db.Text
+  attachments Json?
 
   sequence    EmailSequence        @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
   enrollments OutreachEnrollment[]
@@ -237,9 +254,11 @@ model Deal {
   telefon  String?
   website  String?
 
-  status   String  @default("ACTIVE")
-  notes    String?
-  value    Float?
+  status        String  @default("ACTIVE")
+  stage         String  @default("CALL")
+  notes         String?
+  value         Float?
+  invoiceCreated Boolean @default(false)
 
   offerSentAt DateTime?
   closedAt    DateTime?
@@ -269,8 +288,10 @@ model Quote {
   items       Json
   totalAmount Float    @default(0)
 
-  sentAt DateTime?
-  notes  String?
+  sentAt   DateTime?
+  notes    String?
+  fileUrl  String?
+  isUpload Boolean  @default(false)
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   deal      Deal?     @relation(fields: [dealId], references: [id])
@@ -370,6 +391,7 @@ model JourneyStep {
   subject    String
   body       String @db.Text
   type       String @default("EMAIL")
+  attachments Json?
 
   journey CustomerJourney @relation(fields: [journeyId], references: [id], onDelete: Cascade)
   logs    JourneyLog[]

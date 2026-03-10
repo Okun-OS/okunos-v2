@@ -42,13 +42,29 @@ export async function runOutreachForWorkspace(
     const email = enrollment.lead.email;
     if (!email) continue;
 
-    // Replace {{senderName}} placeholder
+    // Replace placeholders
     const senderName = workspace.fromName || "OkunOS";
-    const body = stage.body.replace(/{{senderName}}/g, senderName);
+
+    // Build greeting based on lead.anrede
+    let greeting: string;
+    if (enrollment.lead.anrede === "Herr") {
+      greeting = "Sehr geehrter Herr " + (enrollment.lead.nachname || "");
+    } else if (enrollment.lead.anrede === "Frau") {
+      greeting = "Sehr geehrte Frau " + (enrollment.lead.nachname || "");
+    } else {
+      greeting = "Guten Tag";
+    }
+
+    const body = stage.body
+      .replace(/{{senderName}}/g, senderName)
+      .replace(/{{greeting}}/g, greeting);
+    const subject = stage.subject
+      .replace(/{{senderName}}/g, senderName)
+      .replace(/{{greeting}}/g, greeting);
 
     try {
       const result = await sendEmail(
-        { to: email, subject: stage.subject, text: body },
+        { to: email, subject, text: body },
         workspace
       );
 
@@ -61,7 +77,7 @@ export async function runOutreachForWorkspace(
             workspaceId,
             leadId: enrollment.lead.id,
             email,
-            subject: stage.subject,
+            subject: subject,
             stage: `step-${enrollment.currentStep + 1}`,
           },
         });
