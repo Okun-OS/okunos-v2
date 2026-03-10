@@ -47,8 +47,19 @@ export async function runJourneysForWorkspace(
     const body = step.body.replace(/{{senderName}}/g, senderName);
 
     try {
+      const stepAttachments = (step.attachments as any[]) ?? [];
+      const attachments = stepAttachments.map((a: any) => ({
+        filename: a.filename,
+        path: require("path").join(process.cwd(), "public", a.url),
+      }));
+
       const result = await sendEmail(
-        { to: email, subject: step.subject, text: body },
+        {
+          to: email,
+          subject: step.subject,
+          text: body,
+          attachments: attachments.length ? attachments : undefined,
+        },
         workspace
       );
 
