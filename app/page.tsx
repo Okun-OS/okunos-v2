@@ -52,6 +52,17 @@ export default async function RootPage() {
             Beta
           </span>
         </div>
+        <div className="hidden md:flex items-center gap-6 text-sm text-gray-400">
+          <Link href="/features" className="hover:text-white transition">
+            Features
+          </Link>
+          <Link href="/pricing" className="hover:text-white transition">
+            Preise
+          </Link>
+          <Link href="/demo" className="hover:text-white transition">
+            Demo
+          </Link>
+        </div>
         <div className="flex items-center gap-3">
           <Link
             href="/login"

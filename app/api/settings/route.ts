@@ -67,6 +67,7 @@ export async function PATCH(req: NextRequest) {
   if (body.maxEmailsPerDay !== undefined) data.maxEmailsPerDay = body.maxEmailsPerDay ? parseInt(body.maxEmailsPerDay) : null;
   if (body.maxEmailsPerRun !== undefined) data.maxEmailsPerRun = body.maxEmailsPerRun ? parseInt(body.maxEmailsPerRun) : null;
   if (body.randomDelayEnabled !== undefined) data.randomDelayEnabled = body.randomDelayEnabled;
+  if (body.onboardingDone !== undefined) data.onboardingDone = body.onboardingDone;
 
   await prisma.workspace.update({ where: { id: wsId }, data });
   return NextResponse.json({ ok: true });

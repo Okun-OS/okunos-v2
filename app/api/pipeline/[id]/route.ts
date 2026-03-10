@@ -40,12 +40,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { status, notes, value, firma, email, anrede, nachname, telefon, website, closedAt } = body;
+  const { status, stage, notes, value, firma, email, anrede, nachname, telefon, website, closedAt, offerSentAt } = body;
 
   const deal = await prisma.deal.update({
     where: { id },
     data: {
       ...(status !== undefined ? { status } : {}),
+      ...(stage !== undefined ? { stage } : {}),
       ...(notes !== undefined ? { notes } : {}),
       ...(value !== undefined ? { value: value !== null ? parseFloat(value) : null } : {}),
       ...(firma !== undefined ? { firma } : {}),
@@ -55,6 +56,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       ...(telefon !== undefined ? { telefon } : {}),
       ...(website !== undefined ? { website } : {}),
       ...(closedAt !== undefined ? { closedAt: closedAt ? new Date(closedAt) : null } : {}),
+      ...(offerSentAt !== undefined ? { offerSentAt: offerSentAt ? new Date(offerSentAt) : null } : {}),
     },
   });
 

@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import PipelineActions from "./PipelineActions";
+import StageActions from "./StageActions";
 
 function formatCurrency(value: number | null | undefined) {
   if (value === null || value === undefined) return "—";
@@ -21,14 +21,41 @@ export default async function PipelinePage() {
     orderBy: { createdAt: "desc" },
   });
 
-  const activeDeals = deals.filter((d) => d.status === "ACTIVE");
+  const callDeals = deals.filter((d) => d.status === "ACTIVE" && d.stage === "CALL");
+  const offerSentDeals = deals.filter((d) => d.status === "ACTIVE" && d.stage === "OFFER_SENT");
   const wonDeals = deals.filter((d) => d.status === "WON");
   const lostDeals = deals.filter((d) => d.status === "LOST");
+  const activeDeals = deals.filter((d) => d.status === "ACTIVE");
 
   const columns = [
-    { label: "Aktiv", color: "text-blue-400", deals: activeDeals },
-    { label: "Gewonnen", color: "text-green-400", deals: wonDeals },
-    { label: "Verloren", color: "text-red-400", deals: lostDeals },
+    {
+      label: "Gespräch / Ersttermin",
+      color: "text-blue-400",
+      bgAccent: "bg-blue-900/20 border-blue-800/40",
+      deals: callDeals,
+      stage: "CALL",
+    },
+    {
+      label: "Angebot gesendet",
+      color: "text-yellow-400",
+      bgAccent: "bg-yellow-900/20 border-yellow-800/40",
+      deals: offerSentDeals,
+      stage: "OFFER_SENT",
+    },
+    {
+      label: "Gewonnen",
+      color: "text-green-400",
+      bgAccent: "bg-green-900/20 border-green-800/40",
+      deals: wonDeals,
+      stage: null,
+    },
+    {
+      label: "Verloren",
+      color: "text-red-400",
+      bgAccent: "bg-red-900/20 border-red-800/40",
+      deals: lostDeals,
+      stage: null,
+    },
   ];
 
   return (
@@ -37,7 +64,8 @@ export default async function PipelinePage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Pipeline</h1>
           <p className="text-gray-400 text-sm mt-1">
-            {deals.length} Deals gesamt · {activeDeals.length} aktiv
+            {deals.length} Deals gesamt · {activeDeals.length} aktiv ·{" "}
+            <span className="text-yellow-400 font-medium">Closing-Stage</span>
           </p>
         </div>
         <Link
@@ -48,12 +76,21 @@ export default async function PipelinePage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      {/* Closing section label */}
+      <div className="mb-4 flex items-center gap-3">
+        <div className="h-px flex-1 bg-gray-700" />
+        <span className="text-xs font-semibold uppercase tracking-widest text-gray-500 px-2">
+          Closing-Phasen
+        </span>
+        <div className="h-px flex-1 bg-gray-700" />
+      </div>
+
+      <div className="grid grid-cols-4 gap-4">
         {columns.map((col) => (
           <div key={col.label}>
-            <div className="flex items-center gap-2 mb-4">
-              <h2 className={`font-semibold ${col.color}`}>{col.label}</h2>
-              <span className="bg-gray-700 text-gray-300 text-xs font-medium px-2 py-0.5 rounded-full">
+            <div className={`flex items-center gap-2 mb-4 p-3 rounded-lg border ${col.bgAccent}`}>
+              <h2 className={`font-semibold text-sm ${col.color}`}>{col.label}</h2>
+              <span className="bg-gray-700 text-gray-300 text-xs font-medium px-2 py-0.5 rounded-full ml-auto">
                 {col.deals.length}
               </span>
             </div>
@@ -71,6 +108,9 @@ export default async function PipelinePage() {
                   >
                     <div className="mb-2">
                       <p className="text-white font-medium text-sm">{deal.firma}</p>
+                      {deal.nachname && (
+                        <p className="text-gray-300 text-xs mt-0.5">{deal.nachname}</p>
+                      )}
                       {deal.email && (
                         <p className="text-gray-400 text-xs mt-0.5">{deal.email}</p>
                       )}
@@ -96,24 +136,43 @@ export default async function PipelinePage() {
                             href={`/quotes/new?dealId=${deal.id}`}
                             className="bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white text-xs font-medium px-2.5 py-1.5 rounded-lg transition"
                           >
-                            Angebot erstellen
+                            Angebot
                           </Link>
-                          <PipelineActions dealId={deal.id} currentStatus="ACTIVE" />
+                          <StageActions
+                            dealId={deal.id}
+                            currentStage={deal.stage}
+                            currentStatus="ACTIVE"
+                          />
                         </>
                       )}
                       {deal.status === "WON" && (
                         <>
-                          <Link
-                            href={`/invoices/new?dealId=${deal.id}`}
-                            className="bg-green-900/40 hover:bg-green-900 text-green-300 text-xs font-medium px-2.5 py-1.5 rounded-lg transition"
-                          >
-                            Rechnung erstellen
-                          </Link>
-                          <PipelineActions dealId={deal.id} currentStatus="WON" />
+                          {!deal.invoiceCreated && (
+                            <Link
+                              href={`/invoices/new?dealId=${deal.id}`}
+                              className="bg-green-900/40 hover:bg-green-900 text-green-300 text-xs font-medium px-2.5 py-1.5 rounded-lg transition"
+                            >
+                              Rechnung
+                            </Link>
+                          )}
+                          {deal.invoiceCreated && (
+                            <span className="text-green-400 text-xs font-medium px-2.5 py-1.5 bg-green-900/20 rounded-lg">
+                              Rechnung erstellt
+                            </span>
+                          )}
+                          <StageActions
+                            dealId={deal.id}
+                            currentStage={deal.stage}
+                            currentStatus="WON"
+                          />
                         </>
                       )}
                       {deal.status === "LOST" && (
-                        <PipelineActions dealId={deal.id} currentStatus="LOST" />
+                        <StageActions
+                          dealId={deal.id}
+                          currentStage={deal.stage}
+                          currentStatus="LOST"
+                        />
                       )}
                     </div>
                   </div>

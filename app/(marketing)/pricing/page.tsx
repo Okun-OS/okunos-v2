@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const plans = [
   {
     name: "Starter",
+    planId: "STARTER",
     price: "49",
     period: "mo",
     description: "Perfekt für Solo-Freelancer und kleine Agenturen, die mit Outreach starten.",
@@ -25,6 +30,7 @@ const plans = [
   },
   {
     name: "Pro",
+    planId: "PRO",
     price: "99",
     period: "mo",
     description: "Für wachsende Agenturen mit mehreren Mitarbeitern und hohem Outreach-Volumen.",
@@ -46,6 +52,7 @@ const plans = [
   },
   {
     name: "Agency",
+    planId: "AGENCY",
     price: "199",
     period: "mo",
     description:
@@ -86,6 +93,52 @@ const faqs = [
     a: "Im Agency Plan kannst du OkunOS mit deinem eigenen Logo, deinen Farben und deiner Domain betreiben und es deinen Kunden als eigenes Produkt anbieten.",
   },
 ];
+
+function CheckoutButton({
+  planId,
+  highlighted,
+}: {
+  planId: string;
+  highlighted: boolean;
+}) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  async function handleClick() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ planId }),
+      });
+      if (res.status === 401) {
+        router.push("/login");
+        return;
+      }
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      className={`block w-full text-center font-semibold py-3 rounded-xl transition disabled:opacity-60 ${
+        highlighted
+          ? "bg-white text-blue-600 hover:bg-blue-50"
+          : "bg-blue-600 hover:bg-blue-500 text-white"
+      }`}
+    >
+      {loading ? "Weiterleiten..." : "Jetzt starten"}
+    </button>
+  );
+}
 
 export default function PricingPage() {
   return (
@@ -227,16 +280,7 @@ export default function PricingPage() {
                 ))}
               </ul>
 
-              <Link
-                href="/register"
-                className={`block text-center font-semibold py-3 rounded-xl transition ${
-                  plan.highlighted
-                    ? "bg-white text-blue-600 hover:bg-blue-50"
-                    : "bg-blue-600 hover:bg-blue-500 text-white"
-                }`}
-              >
-                Jetzt starten
-              </Link>
+              <CheckoutButton planId={plan.planId} highlighted={plan.highlighted} />
             </div>
           ))}
         </div>

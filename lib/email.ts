@@ -11,11 +11,17 @@ export interface WorkspaceEmailConfig {
   smtpPassword?: string | null;
 }
 
+export interface EmailAttachment {
+  filename: string;
+  path?: string;
+  content?: Buffer | string;
+}
+
 export interface SendEmailOptions {
   to: string;
   subject: string;
   text: string;
-  attachments?: Array<{ filename: string; content: Buffer | string }>;
+  attachments?: EmailAttachment[];
 }
 
 const DEFAULT_FROM_NAME = "OkunOS";
@@ -48,11 +54,27 @@ async function sendViaResend(
 
   try {
     const resend = new Resend(apiKey);
+    const attachments = opts.attachments?.map((a) => {
+      let content: string;
+      if (a.content) {
+        content = Buffer.isBuffer(a.content)
+          ? a.content.toString("base64")
+          : Buffer.from(a.content).toString("base64");
+      } else if (a.path) {
+        const fs = require("fs");
+        content = fs.readFileSync(a.path).toString("base64");
+      } else {
+        content = "";
+      }
+      return { filename: a.filename, content };
+    });
+
     await resend.emails.send({
       from,
       to: opts.to,
       subject: opts.subject,
       text: opts.text,
+      attachments: attachments?.length ? attachments : undefined,
     });
     return { ok: true };
   } catch (e: any) {
@@ -78,6 +100,11 @@ async function sendViaSMTP(
       to: opts.to,
       subject: opts.subject,
       text: opts.text,
+      attachments: opts.attachments?.map((a) => ({
+        filename: a.filename,
+        path: a.path,
+        content: a.content,
+      })),
     });
     return { ok: true };
   } catch (smtpError: any) {

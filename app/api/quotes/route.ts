@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { dealId, customerName, customerEmail, contactLine, validUntil, items, notes } = body;
+  const { dealId, customerName, customerEmail, contactLine, validUntil, items, notes, isUpload } = body;
 
   const quoteNumber = await nextQuoteNumber(workspaceId);
 
@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
       totalAmount,
       notes: notes?.trim() || null,
       status: "DRAFT",
+      isUpload: isUpload === true,
     },
   });
 
