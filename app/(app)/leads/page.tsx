@@ -19,7 +19,7 @@ const outStatusColors: Record<string, string> = {
 };
 
 interface PageProps {
-  searchParams: Promise<{ status?: string; search?: string }>;
+  searchParams: Promise<{ status?: string; search?: string; page?: string; limit?: string }>;
 }
 
 export default async function LeadsPage({ searchParams }: PageProps) {

@@ -75,6 +75,8 @@ export default async function DashboardPage() {
     { label: "Deals gewonnen", value: wonDealsCount, color: "text-green-400" },
     { label: "Kunden", value: clientsCount, color: "text-yellow-400" },
     { label: "Mails gesendet heute", value: mailsSentToday, color: "text-orange-400" },
+    { label: "Neue Leads (heute)", value: newLeadsToday, color: "text-cyan-400" },
+    { label: "Antworten (gesamt)", value: totalReplies, color: "text-emerald-400" },
   ];
 
   return (
@@ -89,7 +91,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 mb-8">
         {stats.map((s) => (
           <div
             key={s.label}
