@@ -96,8 +96,6 @@ export async function POST(req: NextRequest) {
           status: sub.status,
           stripePriceId: priceId,
           planId: plan,
-          currentPeriodStart: new Date(sub.current_period_start * 1000),
-          currentPeriodEnd: new Date(sub.current_period_end * 1000),
         },
       });
 
@@ -129,7 +127,10 @@ export async function POST(req: NextRequest) {
 
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId = invoice.subscription as string | null;
+      const subscriptionId =
+        invoice.parent?.type === "subscription_details"
+          ? (invoice.parent.subscription_details?.subscription as string | null)
+          : null;
       if (!subscriptionId) break;
 
       await prisma.workspaceSubscription.updateMany({

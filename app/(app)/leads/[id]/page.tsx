@@ -4,6 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import LeadActions from "./LeadActions";
+import LeadInlineEdit from "./LeadInlineEdit";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -55,8 +56,6 @@ export default async function LeadDetailPage({ params }: PageProps) {
     { label: "Quelle", value: lead.quelle },
     { label: "Anrede", value: lead.anrede },
     { label: "Nachname", value: lead.nachname },
-    { label: "Kommentar", value: lead.kommentar },
-    { label: "Nächste Aktion", value: lead.nextAction },
   ];
 
   return (
@@ -142,16 +141,12 @@ export default async function LeadDetailPage({ params }: PageProps) {
               )}
             </dl>
 
-            {lead.nextDate && (
-              <div className="mt-4 pt-4 border-t border-gray-700">
-                <dt className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-                  Nächstes Datum
-                </dt>
-                <dd className="text-gray-200 text-sm mt-0.5">
-                  {new Date(lead.nextDate).toLocaleDateString("de-DE")}
-                </dd>
-              </div>
-            )}
+            <LeadInlineEdit
+              leadId={lead.id}
+              kommentar={lead.kommentar ?? null}
+              nextAction={lead.nextAction ?? null}
+              nextDate={lead.nextDate ? lead.nextDate.toISOString() : null}
+            />
 
             <div className="mt-4 pt-4 border-t border-gray-700 flex items-center gap-2 text-xs text-gray-500">
               <span>

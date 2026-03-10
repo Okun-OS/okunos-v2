@@ -63,7 +63,7 @@ export async function runOutreachForWorkspace(
       .replace(/{{greeting}}/g, greeting);
 
     try {
-      const stageAttachments = (stage.attachments as any[]) ?? [];
+      const stageAttachments = ((stage as any).attachments as any[]) ?? [];
       const attachments = stageAttachments.map((a: any) => ({
         filename: a.filename,
         path: require("path").join(process.cwd(), "public", a.url),

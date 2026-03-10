@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { stageId } = await params;
-  const stage = await prisma.emailStage.findUnique({ where: { id: stageId } });
+  const stage = await prisma.emailStage.findUnique({ where: { id: stageId } }) as any;
   if (!stage) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const attachments = (stage.attachments as any[]) ?? [];
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { stageId } = await params;
-  const stage = await prisma.emailStage.findUnique({ where: { id: stageId } });
+  const stage = await prisma.emailStage.findUnique({ where: { id: stageId } }) as any;
   if (!stage) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const formData = await req.formData();
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   const existing = (stage.attachments as any[]) ?? [];
   const updated = [...existing, { filename, url }];
 
-  await prisma.emailStage.update({
+  await (prisma.emailStage as any).update({
     where: { id: stageId },
     data: { attachments: updated },
   });
@@ -58,7 +58,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { stageId } = await params;
-  const stage = await prisma.emailStage.findUnique({ where: { id: stageId } });
+  const stage = await prisma.emailStage.findUnique({ where: { id: stageId } }) as any;
   if (!stage) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
@@ -73,7 +73,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
   const existing = (stage.attachments as any[]) ?? [];
   const updated = existing.filter((a: any) => a.url !== url);
 
-  await prisma.emailStage.update({
+  await (prisma.emailStage as any).update({
     where: { id: stageId },
     data: { attachments: updated },
   });

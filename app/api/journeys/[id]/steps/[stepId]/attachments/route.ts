@@ -14,7 +14,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { stepId } = await params;
-  const step = await prisma.journeyStep.findUnique({ where: { id: stepId } });
+  const step = await prisma.journeyStep.findUnique({ where: { id: stepId } }) as any;
   if (!step) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const attachments = (step.attachments as any[]) ?? [];
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { stepId } = await params;
-  const step = await prisma.journeyStep.findUnique({ where: { id: stepId } });
+  const step = await prisma.journeyStep.findUnique({ where: { id: stepId } }) as any;
   if (!step) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const formData = await req.formData();
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   const existing = (step.attachments as any[]) ?? [];
   const updated = [...existing, { filename, url }];
 
-  await prisma.journeyStep.update({
+  await (prisma.journeyStep as any).update({
     where: { id: stepId },
     data: { attachments: updated },
   });
@@ -58,7 +58,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { stepId } = await params;
-  const step = await prisma.journeyStep.findUnique({ where: { id: stepId } });
+  const step = await prisma.journeyStep.findUnique({ where: { id: stepId } }) as any;
   if (!step) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
@@ -74,7 +74,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
   const existing = (step.attachments as any[]) ?? [];
   const updated = existing.filter((a: any) => a.url !== url);
 
-  await prisma.journeyStep.update({
+  await (prisma.journeyStep as any).update({
     where: { id: stepId },
     data: { attachments: updated },
   });

@@ -7,6 +7,7 @@ import { signOut } from "next-auth/react";
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: "⊞" },
   { href: "/leads", label: "Leads", icon: "👥" },
+  { href: "/maps", label: "Maps Import", icon: "📍" },
   { href: "/outreach", label: "Outreach", icon: "✉️" },
   { href: "/pipeline", label: "Pipeline", icon: "📊" },
   { href: "/quotes", label: "Angebote", icon: "📄" },
@@ -14,7 +15,6 @@ const nav = [
   { href: "/clients", label: "Kunden", icon: "🏢" },
   { href: "/journeys", label: "Journeys", icon: "🗺️" },
   { href: "/analytics", label: "Analytics", icon: "📈" },
-  { href: "/maps", label: "Maps Import", icon: "📍" },
 ];
 
 export function Sidebar() {
