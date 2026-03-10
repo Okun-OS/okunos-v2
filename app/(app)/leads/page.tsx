@@ -32,24 +32,34 @@ export default async function LeadsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const statusFilter = params.status;
   const searchFilter = params.search;
+  const page = Math.max(1, parseInt(params.page || "1", 10));
+  const limit = Math.max(1, Math.min(200, parseInt(params.limit || "50", 10)));
+  const skip = (page - 1) * limit;
 
-  const leads = await prisma.lead.findMany({
-    where: {
-      workspaceId,
-      ...(statusFilter ? { status: statusFilter } : {}),
-      ...(searchFilter
-        ? {
-            OR: [
-              { firma: { contains: searchFilter, mode: "insensitive" } },
-              { email: { contains: searchFilter, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const whereClause = {
+    workspaceId,
+    ...(statusFilter ? { status: statusFilter } : {}),
+    ...(searchFilter
+      ? {
+          OR: [
+            { firma: { contains: searchFilter, mode: "insensitive" as const } },
+            { email: { contains: searchFilter, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
 
-  const totalCount = leads.length;
+  const [leads, totalCount] = await Promise.all([
+    prisma.lead.findMany({
+      where: whereClause,
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+    prisma.lead.count({ where: whereClause }),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -204,6 +214,51 @@ export default async function LeadsPage({ searchParams }: PageProps) {
           </table>
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-4 mt-6">
+          {page > 1 ? (
+            <Link
+              href={`/leads?${new URLSearchParams({
+                ...(statusFilter ? { status: statusFilter } : {}),
+                ...(searchFilter ? { search: searchFilter } : {}),
+                page: String(page - 1),
+                limit: String(limit),
+              })}`}
+              className="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition"
+            >
+              &lt; Zurück
+            </Link>
+          ) : (
+            <span className="bg-gray-800 text-gray-600 text-sm font-medium py-2 px-4 rounded-lg cursor-not-allowed">
+              &lt; Zurück
+            </span>
+          )}
+
+          <span className="text-gray-400 text-sm">
+            Seite {page} von {totalPages}
+          </span>
+
+          {page < totalPages ? (
+            <Link
+              href={`/leads?${new URLSearchParams({
+                ...(statusFilter ? { status: statusFilter } : {}),
+                ...(searchFilter ? { search: searchFilter } : {}),
+                page: String(page + 1),
+                limit: String(limit),
+              })}`}
+              className="bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium py-2 px-4 rounded-lg transition"
+            >
+              Weiter &gt;
+            </Link>
+          ) : (
+            <span className="bg-gray-800 text-gray-600 text-sm font-medium py-2 px-4 rounded-lg cursor-not-allowed">
+              Weiter &gt;
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
