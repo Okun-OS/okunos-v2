@@ -8,6 +8,15 @@ interface ScrapeResult {
   phone?: string;
   address?: string;
   mapsUrl?: string;
+  email?: string;
+  foundEmails?: string[];
+}
+
+interface PipelineResult {
+  leadsCreated: number;
+  leadsSkipped: number;
+  enrolled: number;
+  enrollErrors: number;
 }
 
 export default function MapsPage() {
@@ -27,6 +36,12 @@ export default function MapsPage() {
     skipped: number;
   } | null>(null);
 
+  // Autopilot mode
+  const [autopilot, setAutopilot] = useState(false);
+  const [autopilotScrapeWebsites, setAutopilotScrapeWebsites] = useState(true);
+  const [autopilotEnroll, setAutopilotEnroll] = useState(true);
+  const [pipelineResult, setPipelineResult] = useState<PipelineResult | null>(null);
+
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -35,13 +50,21 @@ export default function MapsPage() {
     setJobId(null);
     setSelected(new Set());
     setImportResult(null);
+    setPipelineResult(null);
     setLoading(true);
 
     try {
       const resp = await fetch("/api/maps/scrape", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword, location, maxResults }),
+        body: JSON.stringify({
+          keyword,
+          location,
+          maxResults,
+          scrapeWebsites: autopilot ? autopilotScrapeWebsites : false,
+          autoCreateLeads: autopilot,
+          autoEnroll: autopilot ? autopilotEnroll : false,
+        }),
       });
 
       const data = await resp.json();
@@ -57,6 +80,7 @@ export default function MapsPage() {
 
       setJobId(data.jobId);
       setResults(data.results ?? []);
+      if (data.pipeline) setPipelineResult(data.pipeline);
     } catch (err: any) {
       setError("Netzwerkfehler: " + err?.message);
     } finally {
@@ -147,9 +171,7 @@ export default function MapsPage() {
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm text-gray-400 mb-1">
-              Keyword
-            </label>
+            <label className="block text-sm text-gray-400 mb-1">Keyword</label>
             <input
               type="text"
               value={keyword}
@@ -191,12 +213,59 @@ export default function MapsPage() {
           </div>
         </div>
 
+        {/* Autopilot mode */}
+        <div className="border border-gray-700 rounded-lg p-4 space-y-3">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={autopilot}
+              onChange={(e) => setAutopilot(e.target.checked)}
+              className="rounded border-gray-600 text-blue-500"
+            />
+            <span className="text-white font-medium text-sm">
+              Autopilot-Modus
+            </span>
+            <span className="text-xs text-gray-400">
+              — Leads automatisch erstellen ohne manuellen Import
+            </span>
+          </label>
+
+          {autopilot && (
+            <div className="ml-6 space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={autopilotScrapeWebsites}
+                  onChange={(e) => setAutopilotScrapeWebsites(e.target.checked)}
+                  className="rounded border-gray-600"
+                />
+                Website-Scraper ausführen (E-Mails finden)
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={autopilotEnroll}
+                  onChange={(e) => setAutopilotEnroll(e.target.checked)}
+                  className="rounded border-gray-600"
+                />
+                In Standard-Outreach-Sequenz einschreiben
+              </label>
+            </div>
+          )}
+        </div>
+
         <button
           type="submit"
           disabled={loading}
           className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:cursor-not-allowed text-white rounded-lg transition font-medium"
         >
-          {loading ? "Suche läuft..." : "Leads suchen"}
+          {loading
+            ? autopilot
+              ? "Autopilot läuft..."
+              : "Suche läuft..."
+            : autopilot
+            ? "Autopilot starten"
+            : "Leads suchen"}
         </button>
       </form>
 
@@ -204,7 +273,9 @@ export default function MapsPage() {
         <div className="bg-gray-800 border border-gray-700 rounded-xl p-8 text-center">
           <div className="inline-block w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-3" />
           <p className="text-gray-300">
-            Google Maps wird durchsucht. Dies kann bis zu 2 Minuten dauern...
+            {autopilot
+              ? "Autopilot läuft: Maps → Website-Scraper → Leads erstellen → Outreach..."
+              : "Google Maps wird durchsucht. Dies kann bis zu 2 Minuten dauern..."}
           </p>
         </div>
       )}
@@ -215,7 +286,54 @@ export default function MapsPage() {
         </div>
       )}
 
-      {results !== null && !loading && (
+      {/* Autopilot pipeline result */}
+      {pipelineResult && (
+        <div className="mb-4 p-4 bg-green-900/40 border border-green-700 rounded-lg">
+          <p className="text-green-300 font-medium">Autopilot abgeschlossen</p>
+          <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div className="bg-green-900/40 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-green-300">
+                {pipelineResult.leadsCreated}
+              </div>
+              <div className="text-green-400">Leads erstellt</div>
+            </div>
+            <div className="bg-gray-700/40 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-gray-300">
+                {pipelineResult.leadsSkipped}
+              </div>
+              <div className="text-gray-400">Duplikate übersprungen</div>
+            </div>
+            <div className="bg-blue-900/40 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-blue-300">
+                {pipelineResult.enrolled}
+              </div>
+              <div className="text-blue-400">In Outreach eingeschrieben</div>
+            </div>
+            <div className="bg-gray-700/40 rounded-lg p-3 text-center">
+              <div className="text-2xl font-bold text-gray-300">
+                {(results?.length ?? 0)}
+              </div>
+              <div className="text-gray-400">Gefunden</div>
+            </div>
+          </div>
+          <div className="mt-3 flex gap-3">
+            <a
+              href="/leads"
+              className="inline-block px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm rounded-lg transition"
+            >
+              Leads ansehen
+            </a>
+            <a
+              href="/outreach"
+              className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded-lg transition"
+            >
+              Outreach ansehen
+            </a>
+          </div>
+        </div>
+      )}
+
+      {results !== null && !loading && !autopilot && (
         <div className="bg-gray-800 border border-gray-700 rounded-xl">
           <div className="px-5 py-4 border-b border-gray-700 flex items-center justify-between flex-wrap gap-3">
             <div>
@@ -325,7 +443,9 @@ export default function MapsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-gray-300">
-                        {result.phone ?? <span className="text-gray-500">-</span>}
+                        {result.phone ?? (
+                          <span className="text-gray-500">-</span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-gray-300 text-xs">
                         {result.address ?? (
@@ -362,6 +482,45 @@ export default function MapsPage() {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Autopilot: show results as read-only table */}
+      {results !== null && !loading && autopilot && results.length > 0 && !pipelineResult && (
+        <div className="bg-gray-800 border border-gray-700 rounded-xl">
+          <div className="px-5 py-4 border-b border-gray-700">
+            <span className="text-white font-medium">
+              {results.length} Ergebnisse gefunden
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-700">
+                  <th className="px-4 py-3 text-left text-gray-400 font-medium">Name</th>
+                  <th className="px-4 py-3 text-left text-gray-400 font-medium">Website</th>
+                  <th className="px-4 py-3 text-left text-gray-400 font-medium">Telefon</th>
+                  <th className="px-4 py-3 text-left text-gray-400 font-medium">Adresse</th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((result, idx) => (
+                  <tr key={idx} className="border-b border-gray-700/50">
+                    <td className="px-4 py-3 text-white font-medium">{result.name}</td>
+                    <td className="px-4 py-3">
+                      {result.website ? (
+                        <a href={result.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline truncate max-w-[180px] block">
+                          {result.website}
+                        </a>
+                      ) : <span className="text-gray-500">-</span>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-300">{result.phone ?? <span className="text-gray-500">-</span>}</td>
+                    <td className="px-4 py-3 text-gray-300 text-xs">{result.address ?? <span className="text-gray-500">-</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

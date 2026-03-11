@@ -9,12 +9,24 @@ interface RouteParams {
   params: Promise<{ id: string; stageId: string }>;
 }
 
+async function getStageForWorkspace(stageId: string, workspaceId: string) {
+  const stage = await prisma.emailStage.findUnique({
+    where: { id: stageId },
+    include: { sequence: { select: { workspaceId: true } } },
+  }) as any;
+  if (!stage || stage.sequence.workspaceId !== workspaceId) return null;
+  return stage;
+}
+
 export async function GET(req: NextRequest, { params }: RouteParams) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const workspaceId = (session.user as any).workspaceId as string;
+  if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 403 });
+
   const { stageId } = await params;
-  const stage = await prisma.emailStage.findUnique({ where: { id: stageId } }) as any;
+  const stage = await getStageForWorkspace(stageId, workspaceId);
   if (!stage) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const attachments = (stage.attachments as any[]) ?? [];
@@ -25,8 +37,11 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const workspaceId = (session.user as any).workspaceId as string;
+  if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 403 });
+
   const { stageId } = await params;
-  const stage = await prisma.emailStage.findUnique({ where: { id: stageId } }) as any;
+  const stage = await getStageForWorkspace(stageId, workspaceId);
   if (!stage) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const formData = await req.formData();
@@ -57,8 +72,11 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const workspaceId = (session.user as any).workspaceId as string;
+  if (!workspaceId) return NextResponse.json({ error: "No workspace" }, { status: 403 });
+
   const { stageId } = await params;
-  const stage = await prisma.emailStage.findUnique({ where: { id: stageId } }) as any;
+  const stage = await getStageForWorkspace(stageId, workspaceId);
   if (!stage) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();

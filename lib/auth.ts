@@ -21,7 +21,11 @@ export const authOptions: NextAuthOptions = {
         const user = await prisma.user.findUnique({
           where: { email: credentials.email.toLowerCase() },
           include: {
-            memberships: { include: { workspace: true }, take: 1 },
+            memberships: {
+              include: { workspace: true },
+              where: { workspace: { isActive: true } },
+              take: 1,
+            },
           },
         });
 
@@ -67,3 +71,17 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+/**
+ * Verify that a user (by userId) is actually a member of the given workspace.
+ * Use this in sensitive routes that deal with cross-workspace operations.
+ */
+export async function verifyWorkspaceMember(
+  userId: string,
+  workspaceId: string
+): Promise<boolean> {
+  const membership = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId } },
+  });
+  return !!membership;
+}
