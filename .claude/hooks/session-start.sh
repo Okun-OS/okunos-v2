@@ -8,6 +8,9 @@ fi
 
 cd "$CLAUDE_PROJECT_DIR"
 
+echo "Cleaning node_modules and package-lock.json to fix native binding issues..."
+rm -rf node_modules package-lock.json
+
 echo "Installing npm dependencies (includes prisma generate via postinstall)..."
 npm install
 
