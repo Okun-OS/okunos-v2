@@ -11,4 +11,19 @@ cd "$CLAUDE_PROJECT_DIR"
 echo "Installing npm dependencies (includes prisma generate via postinstall)..."
 npm install
 
+echo "Starting PostgreSQL..."
+sudo service postgresql start
+
+echo "Waiting for PostgreSQL to be ready..."
+until pg_isready -q; do
+  sleep 1
+done
+
+echo "Creating database if it doesn't exist..."
+sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'okunos'" | grep -q 1 \
+  || sudo -u postgres psql -c "CREATE DATABASE okunos;"
+
+echo "Running prisma db push..."
+npx prisma db push --skip-generate
+
 echo "Session start hook completed successfully."
