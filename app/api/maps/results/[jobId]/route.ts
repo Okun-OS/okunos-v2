@@ -142,7 +142,6 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       if (firstStage) {
         await prisma.outreachEnrollment.create({
           data: {
-            workspaceId,
             leadId: lead.id,
             sequenceId: defaultSequenceId,
             currentStageId: firstStage.id,
