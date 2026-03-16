@@ -3,7 +3,7 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-  "postCreateCommand": "rm -rf node_modules && npm install && npx prisma db push",
+  "postCreateCommand": "cp .env.codespace .env && rm -rf node_modules && npm install && npx prisma db push",
   "forwardPorts": [3000, 5432],
   "portsAttributes": {
     "3000": {
