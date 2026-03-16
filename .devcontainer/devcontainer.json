@@ -1,8 +1,10 @@
 {
   "name": "Okun OS",
-  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-20-bullseye",
-  "postCreateCommand": "rm -rf node_modules && npm install",
-  "forwardPorts": [3000],
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "postCreateCommand": "rm -rf node_modules && npm install && npx prisma db push",
+  "forwardPorts": [3000, 5432],
   "portsAttributes": {
     "3000": {
       "label": "Next.js Dev Server",
