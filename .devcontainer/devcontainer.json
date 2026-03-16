@@ -3,7 +3,7 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-  "postCreateCommand": "cp .env.codespace .env && rm -rf node_modules && npm install && npx prisma db push",
+  "postCreateCommand": "cp .env.codespace .env && rm -rf node_modules && npm install && npx prisma db push && npx playwright install chromium",
   "forwardPorts": [3000, 5432],
   "portsAttributes": {
     "3000": {
